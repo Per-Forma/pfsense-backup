@@ -24,5 +24,5 @@ Future versions should expand on the supported versions.
 ### Fully Tested pfSense Versions
 Below is a list of versions that have been confirmed to work with the current branch.
 
-2.3.1-RELEASE-p1
-2.4.1-RELEASE
+`2.3.1-RELEASE-p1`
+`2.4.1-RELEASE`
