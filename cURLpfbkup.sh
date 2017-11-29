@@ -5,18 +5,18 @@ pass=$3
 echo 'Connecting to '$host
 
 #Get the initial CSRF Magic Token
-csrf=$(curl -s -S --insecure --cookie-jar cookies/${host}cookie.txt http://${host}/diag_backup.php | grep "name='__csrf_magic'" | sed 's/.*value="\(.*\)".*/\1/')
+csrf=$(curl -s -S --insecure --cookie-jar cookies/${host}cookie.txt https://${host}/diag_backup.php | grep "name='__csrf_magic'" | sed 's/.*value="\(.*\)".*/\1/')
 
 
 crlf=$'\r\n' #creates variable representing Windows (CR LF) required for line termination by the MIME Multipart Media Encapsulation file upload specification.
 
 #Get the 2nd CSRF Magic Token
-csrf2=$(curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt --data "login=Login&usernamefld=$user&passwordfld=$pass&__csrf_magic=$csrf" http://${host}/diag_backup.php | grep "name='__csrf_magic'" | sed 's/.*value="\(.*\)".*/\1/;q')
+csrf2=$(curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt --data "login=Login&usernamefld=$user&passwordfld=$pass&__csrf_magic=$csrf" https://${host}/diag_backup.php | grep "name='__csrf_magic'" | sed 's/.*value="\(.*\)".*/\1/;q')
 
 #Attention: Need to write a check here for failed login.
 
 #After logging in, Get the pfSense version
-pfver=$(curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt http://${host}/index.php | grep -P '<strong>\d\.\d\.\d.*<\/strong>' | grep -Po '\d\.\d\.\d')
+pfver=$(curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt https://${host}/index.php | grep -P '<strong>\d\.\d\.\d.*<\/strong>' | grep -Po '\d\.\d\.\d')
 
 #Break apart the full version into Major Minor and Point Release
 pfmaver=$(echo $pfver | grep -Po '^\d')
@@ -45,7 +45,7 @@ fi
 poststring="-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"__csrf_magic\"${crlf}${crlf}$csrf2${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"backuparea\"${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"donotbackuprrd\"${crlf}${crlf}yes${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"encrypt_password\"${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"${buttonaction}\"${crlf}${crlf}Download configuration as XML${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"restorearea\"${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"conffile\"; filename=\"\"${crlf}Content-Type: application/octet-stream${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"decrypt_password\"${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00--${crlf}"
 
 #Post file to initiate XML backup
-curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt -H "Content-Type: multipart/form-data; boundary=---------------------------7e12e22ee971f00"  -d "$poststring" http://${host}/diag_backup.php > ${host}.xml
+curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt -H "Content-Type: multipart/form-data; boundary=---------------------------7e12e22ee971f00"  -d "$poststring" https://${host}/diag_backup.php > ${host}.xml
 
 #Deleting cookie after completion
 rm cookies/${host}cookie.txt
