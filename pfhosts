@@ -1,0 +1,6 @@
+#The pfhosts file should be in the same directory as the pfbkup.sh and cURLpfbkup.sh scripts
+#This file contains the list of pfSense firewalls to connect to and attempt to download the 
+#configuration XML. 
+#The syntax of this file must be as follows:
+#hostname username password
+#A new line charachter must exist at the end of the final line or the last host will not be processed.
