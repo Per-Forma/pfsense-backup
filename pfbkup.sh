@@ -11,7 +11,7 @@ do
 
 	hostlinenowhitespace="$(echo -e "${hostline}" | tr -d '[:space:]')"
 	linesize=$(echo $hostlinenowhitespace | wc -m)
-	if [ ! $linesize -ge 5 ]; then #This skips lines that are empty or too small to contain connection information
+	if [ ! $linesize -ge 4 ]; then #This skips lines that are empty or too small to contain connection information
 		continue
 	fi
 
@@ -23,6 +23,6 @@ do
 		#echo $word
 	done
 
-	param2=${param2::-1}
+	#param2=${param2::-1} Originally inplace to remove '\r' charachter from CR LF encoded file.
 	./cURLpfbkup.sh $param0 $param1 $param2
 done < pfhosts
