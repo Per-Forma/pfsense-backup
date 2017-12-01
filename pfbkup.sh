@@ -1,3 +1,7 @@
+# cd to directory script is being run from. Makes scheduling from cron easier
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+
 if [ ! -d 'cookies/' ]; then
 	echo 'Making Cookies Directory'
 	mkdir cookies
