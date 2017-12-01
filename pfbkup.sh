@@ -1,3 +1,4 @@
+#!/bin/bash
 # cd to directory script is being run from. Makes scheduling from cron easier
 BASEDIR=$(dirname "$0")
 cd $BASEDIR

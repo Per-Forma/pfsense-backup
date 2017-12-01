@@ -1,3 +1,4 @@
+#!/bin/bash
 host=$1
 user=$2
 pass=$3
