@@ -95,8 +95,10 @@ There is no build step, package manager, or dependency beyond standard Unix util
 - Output XML files are named `{hostname}.xml`.
 
 ### Error Handling
-- Comment on line 17 of `cURLpfbkup.sh` flags a known gap: failed login is not explicitly detected. Any fix should check whether `csrf2` is empty before proceeding.
-- Unknown pfSense versions cause the script to `exit` without saving a file; this is intentional to avoid saving garbage HTML as XML.
+- Failed login is detected by checking whether `csrf2` is empty after the login POST; an empty token means the credentials were rejected, so the script prints an error and exits `1` without writing a backup.
+- The download response is written to `{hostname}.xml.tmp` and validated for the `<pfsense>` root element before being moved into place. A non-config (HTML) response leaves any existing `{hostname}.xml` untouched and exits `1`.
+- Unknown pfSense versions cause the script to `exit 1` without saving a file; this is intentional to avoid saving garbage HTML as XML.
+- All failure paths clean up the per-host cookie file and return a non-zero exit code.
 
 ## Security Considerations
 

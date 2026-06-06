@@ -14,7 +14,12 @@ crlf=$'\r\n' #creates variable representing Windows (CR LF) required for line te
 #Get the 2nd CSRF Magic Token
 csrf2=$(curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt --data "login=Login&usernamefld=$user&passwordfld=$pass&__csrf_magic=$csrf" https://${host}/diag_backup.php | grep "name='__csrf_magic'" | sed 's/.*value="\(.*\)".*/\1/;q')
 
-#Attention: Need to write a check here for failed login.
+#Check for failed login: a successful login returns a 2nd CSRF token. An empty token means the credentials were rejected.
+if [ -z "$csrf2" ]; then
+	echo "Login failed for ${host} - check credentials" >&2
+	rm -f cookies/${host}cookie.txt
+	exit 1
+fi
 
 #After logging in, Get the pfSense version
 pfver=$(curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt https://${host}/index.php | grep -P '<strong>\d\.\d\.\d.*<\/strong>' | grep -Po '\d\.\d\.\d')
@@ -35,18 +40,31 @@ if [ "$pfmaver" == 2 ]; then
 		buttonaction='download'
 	else
 		echo 'Unknown Minor Version'
-		exit
+		rm -f cookies/${host}cookie.txt
+		exit 1
 	fi
 else
 	echo 'Unknown Major Version'
-	exit
+	rm -f cookies/${host}cookie.txt
+	exit 1
 fi
 
 #Building the MIME Multipart Media Encapsulation file
 poststring="-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"__csrf_magic\"${crlf}${crlf}$csrf2${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"backuparea\"${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"donotbackuprrd\"${crlf}${crlf}yes${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"encrypt_password\"${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"${buttonaction}\"${crlf}${crlf}Download configuration as XML${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"restorearea\"${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"conffile\"; filename=\"\"${crlf}Content-Type: application/octet-stream${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00${crlf}Content-Disposition: form-data; name=\"decrypt_password\"${crlf}${crlf}${crlf}-----------------------------7e12e22ee971f00--${crlf}"
 
-#Post file to initiate XML backup
-curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt -H "Content-Type: multipart/form-data; boundary=---------------------------7e12e22ee971f00"  -d "$poststring" https://${host}/diag_backup.php > ${host}.xml
+#Post file to initiate XML backup. Write to a temp file first so a failed download cannot clobber a good backup.
+curl -s -S --location --insecure --cookie cookies/${host}cookie.txt --cookie-jar cookies/${host}cookie.txt -H "Content-Type: multipart/form-data; boundary=---------------------------7e12e22ee971f00"  -d "$poststring" https://${host}/diag_backup.php > ${host}.xml.tmp
+
+#Validate the response is a real pfSense config before overwriting. A login/error page is HTML and never contains the <pfsense> root element.
+if grep -q '<pfsense>' ${host}.xml.tmp; then
+	mv ${host}.xml.tmp ${host}.xml
+	echo "Backup saved to ${host}.xml"
+else
+	echo "Backup for ${host} did not return valid config - existing backup left untouched" >&2
+	rm -f ${host}.xml.tmp
+	rm -f cookies/${host}cookie.txt
+	exit 1
+fi
 
 #Deleting cookie after completion
-rm cookies/${host}cookie.txt
+rm -f cookies/${host}cookie.txt
